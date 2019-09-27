@@ -36,8 +36,8 @@ public class BusyRateCalc {
 	static int[][] m_nssPointIR = {
 		{0, 99}, 			//0 ~ 99%
 	    {10, 99}, 
-	    {40, 90},
-	    {80, 10},
+	    {60, 90},
+	    {80, 55},
 	    {100, 1},				//100 ~ 1%	
 	    {110, 1}
 	};
@@ -71,6 +71,10 @@ public class BusyRateCalc {
 	 * @return
 	 */
 	public static int CalcProbability(int nMag, int nIR) {
+			if(nMag > 100)
+				return 900;
+			else if(nMag < 20)
+				return 100;
 	    int nMagL = ReadTable2Value(m_nssPointMag, nMag);
 	    int nIRL = ReadTable2Value(m_nssPointIR, nIR);
 	    int nn = nMagL * 55 + nIRL * 45;
@@ -90,7 +94,58 @@ public class BusyRateCalc {
 	
 	    if (nRateLast >= 500)   //原状态有车
 	    {
-	        if ( Math.abs(nMag - nMagLast) > 12 && nIR - nIRLast > 15)  //地磁变化，红外增加
+	        if ( Math.abs(nMag - nMagLast) > 12 && nIR - nIRLast > 10)  //地磁变化，红外增加
+	        {
+	        	nRate -= 200;
+	        }
+	        else
+	        {
+	        	nRate += 200;
+	        }
+	    }
+	    else
+	    {
+	        if (Math.abs(nMag - nMagLast) > 12 && nIRLast - nIR > 10)  //地磁变化，红外减小
+	        {
+	        	nRate += 200;
+	        }
+	        else
+	        {
+	        	nRate -= 200;
+	        }
+	    }
+        if (nRate > 999)
+        	nRate = 999;
+        if (nRate < 1)
+        	nRate = 1;
+        
+        return nRate;
+	}
+	
+	public static int IsDiffMag(int X,int Y,int Z){
+		if(Math.abs(X) > 12)
+			return 1;
+		if(Math.abs(Y) > 12)
+			return 1;
+		if(Math.abs(Z) > 12)
+			return 1;
+		return 0;
+	}
+	/**
+	 * 返回0~1000，小于500表示无车 大于等于500表示有车
+	 * @param nMagLast 原磁场
+	 * @param nMag 		当前磁场
+	 * @param nIRLast  原红外距离值 
+	 * @param nIR 红外距离值
+	 * @param nRateLast	原综合有车概率
+	 * @param nRate 当前车位概率
+	 * @return
+	 */
+	public static int CalcProbabilityAmend2(int nIsDiffMag, int nIRLast, int nIR, int nRateLast, int nRate) {
+	
+	    if (nRateLast >= 500)   //原状态有车
+	    {
+	        if ( nIsDiffMag > 0 && nIR - nIRLast > 20)  //地磁变化，红外增加
 	        {
 	        	nRate -= 100;
 	        }
@@ -101,7 +156,7 @@ public class BusyRateCalc {
 	    }
 	    else
 	    {
-	        if (Math.abs(nMag - nMagLast) > 12 && nIRLast - nIR > 15)  //地磁变化，红外减小
+	        if (nIsDiffMag > 0 && nIRLast - nIR > 20)  //地磁变化，红外减小
 	        {
 	        	nRate += 100;
 	        }
